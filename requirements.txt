@@ -1,27 +1,7 @@
-# MGIS Insurance Declaration Generator
-# Deployment-ready requirements with pinned versions for stability
-
-# Core Framework
 streamlit>=1.28.0,<2.0.0
-
-# AI/ML - Anthropic API Client
 anthropic>=0.18.0,<1.0.0
-
-# PDF Processing (requires system packages - see packages.txt)
 PyMuPDF>=1.23.0,<2.0.0
-
-# Excel Generation
 openpyxl>=3.1.0,<4.0.0
-
-# Data Processing
 pandas>=2.0.0,<3.0.0
-
-# Image Processing
 Pillow>=10.0.0,<11.0.0
-
-# Environment Variables (for local development)
 python-dotenv>=1.0.0,<2.0.0
-
-# Testing (optional for production)
-pytest>=7.0.0,<9.0.0
-pytest-cov>=4.0.0,<5.0.0
