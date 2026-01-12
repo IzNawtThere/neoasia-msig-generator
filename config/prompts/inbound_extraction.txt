@@ -1,0 +1,138 @@
+You are analyzing a shipping document image for NeoAsia (S) Pte Ltd, a medical equipment and healthcare products company in Singapore.
+
+CRITICAL CONTEXT: NeoAsia is located in SINGAPORE. All INBOUND shipments are coming TO Singapore FROM other countries.
+
+TASK: Extract shipping information from this document. Identify the document type first, then extract relevant fields.
+
+DOCUMENT TYPE CLASSIFICATION:
+
+1. COURIER_LABEL (FedEx, DHL, UPS, TNT, Aramex)
+   - Characteristics: Shipping label with barcode, tracking number field
+   - Key identifier: "TRK#", "TRACKING", carrier logo
+   - Mode: Always COURIER
+   - Tracking format: 10-14 digits, typically grouped (e.g., "8846 0237 3339")
+
+2. AIR_WAYBILL 
+   - Characteristics: "Air Waybill", "AWB", "MAWB", "HAWB" header
+   - Key identifier: AWB number format XXX-XXXXXXXX (e.g., "235-30462681")
+   - Mode: Always AIR
+   - Associated with: Airlines (Turkish, Singapore, Cathay, EVA, etc.)
+
+3. BILL_OF_LADING (Sea Freight - for future reference)
+   - Characteristics: "Bill of Lading", "B/L", "Ocean Bill" header
+   - Key identifier: B/L number, Container number (format: XXXX1234567)
+   - Mode: Always SEA
+   - Associated with: Shipping lines (Maersk, MSC, Evergreen, etc.)
+   - Keywords: "vessel", "port of loading", "port of discharge", "container"
+   
+4. COMMERCIAL_INVOICE
+   - Characteristics: "Commercial Invoice", "Invoice" header
+   - Contains: Incoterms, values, product descriptions
+
+5. CARGO_PERMIT
+   - Characteristics: "Cargo Clearance Permit" header
+   - Singapore customs document
+
+6. SHIPMENT_REPORT
+   - Characteristics: NeoAsia internal form with "SHIPMENT IN REPORT" header
+
+7. PURCHASE_ORDER
+   - Characteristics: "PURCHASE ORDER" header, "PO Ref No" field
+   - Contains: Item No. column with brand codes, quantities, descriptions
+   - Brand codes: Extract 3-letter prefix from Item No. (e.g., "NST-P-D30333" → "NST")
+
+8. OTHER
+   - Packing lists, certificates, supporting documents
+
+EXTRACTION RULES BY DOCUMENT TYPE:
+
+FOR COURIER_LABEL (HIGHEST PRIORITY for tracking and date):
+- TRACKING NUMBER: Look for "TRK#" field - typically 12 DIGITS with spaces (e.g., "8846 8363 7387")
+  * CRITICAL: Remove all spaces when extracting - "8846 8363 7387" becomes "884683637387"
+  * DO NOT extract alphanumeric reference codes like "JSDFY10052" - these are NOT tracking numbers
+  * Tracking numbers are near the barcode, mostly numeric
+  * READ EACH DIGIT CAREFULLY - similar digits: 0/6/8/9, 2/7, 3/8, 5/6
+- SHIP DATE: Look for "SHIP DATE:" field - FORMAT VARIATIONS:
+  * "29SEP25" means 29 September 2025 → 2025-09-29
+  * "23SEP25" means 23 September 2025 → 2025-09-23
+  * READ CAREFULLY: 20, 23, 26, 29 can look similar - check each digit
+- ORIGIN: Look at the SENDER/SHIPPER address section (top left usually)
+  * The ORIGIN is where the package is coming FROM
+  * Look for country name in sender address: KOREA, USA, JAPAN, CHINA, etc.
+  * DO NOT confuse with destination - SINGAPORE is always the DESTINATION for inbound
+  * Keywords: "FROM:", "ORIGIN:", sender address block
+- CARRIER: FedEx, DHL, UPS, TNT from logo/header
+
+FOR AIR_WAYBILL:
+- AWB NUMBER: Format XXX-XXXXXXXX (e.g., "235-30462681")
+  * May be split as "235 | VLC | 30462681" - combine first and last: "235-30462681"
+- FLIGHT NUMBERS: Format XX#### (2 letters + 3-4 digits)
+  * e.g., "TK1314", "SQ178", "BR031"
+  * Multiple flights separated by "/" (e.g., "TK1314/03 TK208/04" = TK1314, TK208)
+- DATE: Various formats - extract if clearly visible
+- ORIGIN: Airport or country from routing - NEVER Singapore for inbound
+
+FOR BILL_OF_LADING (SEA):
+- B/L NUMBER: Variable format, often includes carrier prefix
+  * Look for "B/L No.", "Bill of Lading Number"
+- CONTAINER NUMBER: Format XXXX1234567 (4 letters + 7 digits)
+- VESSEL NAME: Ship name, often with voyage number
+- PORT OF LOADING: Origin port - this is the ORIGIN
+- PORT OF DISCHARGE: Destination port (typically Singapore)
+- ETD/ETA: Estimated dates
+
+FOR COMMERCIAL_INVOICE:
+- INCOTERMS: EXW, FOB, CIF, DAP, DDP, etc.
+- CURRENCY: USD, EUR, SGD, etc.
+- TOTAL VALUE: Numeric value
+- Do NOT extract tracking/AWB from invoices (use shipping documents)
+- ORIGIN: Look at shipper/seller address country
+
+FOR PURCHASE_ORDER:
+- BRAND CODES: Extract 3-letter prefix from each Item No.
+  * Pattern: "NST-P-D30333" → extract "NST"
+  * Pattern: "HLC-A-B12345" → extract "HLC"
+  * Deduplicate extracted codes
+  * ONLY extract from visible Item No. column - DO NOT GUESS
+- PO REFERENCE: "PO Ref No" or "POR" number
+- Do NOT extract shipping info from Purchase Orders
+
+RESPONSE FORMAT (JSON):
+{
+    "document_type": "COURIER_LABEL" | "AIR_WAYBILL" | "BILL_OF_LADING" | "COMMERCIAL_INVOICE" | "CARGO_PERMIT" | "SHIPMENT_REPORT" | "PURCHASE_ORDER" | "OTHER",
+    "tracking_or_awb": "extracted number or null",
+    "ship_date": "YYYY-MM-DD format or null",
+    "mode": "COURIER" | "AIR" | "SEA" | null,
+    "flight_numbers": ["array", "of", "flights"] or [],
+    "vessel_info": "vessel name / voyage number or null",
+    "container_number": "container ID or null",
+    "origin_country": "FULL COUNTRY NAME or null",
+    "destination_country": "FULL COUNTRY NAME or null",
+    "incoterms": "EXW" | "FOB" | "CIF" | etc. or null,
+    "currency": "USD" | "EUR" | etc. or null,
+    "total_value": numeric_value or null,
+    "carrier": "carrier name or null",
+    "brand_codes": ["array", "of", "3-letter", "codes"] or [],
+    "confidence": "HIGH" | "MEDIUM" | "LOW",
+    "notes": "any observations about data quality or uncertainties"
+}
+
+CRITICAL RULES:
+1. If you cannot find a field with reasonable certainty, use null - DO NOT GUESS
+2. For COURIER mode, tracking must be mostly digits (12+), not alphanumeric codes
+3. For AIR mode, AWB format must be XXX-XXXXXXXX
+4. For SEA mode, look for B/L number and container details
+5. Dates should be output as YYYY-MM-DD
+6. Country names should be full names (UNITED STATES, not US or USA; KOREA or SOUTH KOREA, not KR)
+7. Report confidence honestly - use LOW if document is unclear
+8. ORIGIN IS NEVER SINGAPORE for inbound shipments - Singapore is the destination
+9. Always respond with valid JSON only - no additional text
+
+ANTI-HALLUCINATION RULES (NON-NEGOTIABLE):
+- NEVER invent or fabricate: dates, tracking numbers, flight numbers, brand codes
+- If a field is not clearly visible, use null - silence is preferred over incorrect certainty
+- brand_codes must ONLY contain codes explicitly visible in Item No. column
+- Do NOT infer brand from product descriptions or company names
+- Do NOT carry over values from other documents or prior context
+- Each page must be processed independently based on what is visible
+- If document is blurry or partially visible, set confidence to LOW and leave uncertain fields null

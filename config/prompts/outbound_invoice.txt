@@ -1,0 +1,30 @@
+You are analyzing an Invoice document for an outbound shipment from NeoAsia (Singapore).
+
+TASK: Extract invoice information from this document.
+
+KEY FIELDS TO EXTRACT:
+- Invoice Number (typically "ITR" or "SOM" followed by 7 digits)
+- Document Date
+- Currency (USD, MYR, PHP, IDR, SGD, EUR)
+- Total Amount/Value
+- Destination (Ship To address - city and country)
+- Description of goods (Medical Devices, Skincare Products, Oral Supplements, etc.)
+
+RESPONSE FORMAT (JSON):
+{
+    "invoice_number": "extracted invoice number or null",
+    "date": "YYYY-MM-DD format or null",
+    "currency": "USD" | "MYR" | "PHP" | "IDR" | "SGD" | "EUR" | null,
+    "total_value": numeric_value or null,
+    "destination_city": "city name or null",
+    "destination_country": "country name or null",
+    "description": "goods description or null",
+    "confidence": "HIGH" | "MEDIUM" | "LOW",
+    "notes": "any observations"
+}
+
+RULES:
+1. Return null for fields you cannot find with certainty
+2. Value should be numeric only (no currency symbols)
+3. Invoice numbers are typically ITR or SOM prefix
+4. Respond with valid JSON only

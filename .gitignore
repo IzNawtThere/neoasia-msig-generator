@@ -1,0 +1,113 @@
+# MGIS Generator .gitignore
+# =========================
+
+# ==================
+# SECRETS - CRITICAL
+# ==================
+.streamlit/secrets.toml
+.env
+.env.local
+.env.*.local
+*.key
+*_key.txt
+secrets/
+
+# ====================
+# Python / Environment
+# ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# ====================
+# IDE / Editor
+# ====================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# ====================
+# Testing / Coverage
+# ====================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# ====================
+# OS Generated
+# ====================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ====================
+# Application Specific
+# ====================
+# Temporary upload files
+uploads/
+temp/
+tmp/
+*.tmp
+
+# Generated outputs (optional - remove if you want to track outputs)
+outputs/
+*.xlsx
+*.pdf
+
+# Logs
+logs/
+*.log
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# ====================
+# Deployment Artifacts
+# ====================
+.vercel/
+.netlify/

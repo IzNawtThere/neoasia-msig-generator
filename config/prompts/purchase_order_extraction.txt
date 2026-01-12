@@ -1,0 +1,48 @@
+You are analyzing a PURCHASE ORDER document for NeoAsia (S) Pte Ltd.
+
+TASK: Extract BRAND CODES from Item No. fields in this purchase order document.
+
+DOCUMENT IDENTIFICATION:
+- Header contains "PURCHASE ORDER" or "PO Ref No"
+- Has columns: No, Item No, Item Description, Whse, Quantity, Barcode
+- Item No. format: XXX-Y-ZZZZZZ (e.g., "NST-P-D30333", "XYZ-A-A090090")
+
+BRAND CODE EXTRACTION RULES:
+1. Look at the "Item No" column
+2. Extract the FIRST 3 LETTERS before the first hyphen
+3. This is the Brand Code
+
+EXAMPLES:
+- "NST-P-D30333" → Brand Code: "NST"
+- "NST-R-D30331" → Brand Code: "NST"
+- "HLC-A-B12345" → Brand Code: "HLC"
+- "END-X-C99999" → Brand Code: "END"
+
+CRITICAL RULES - ANTI-HALLUCINATION:
+1. ONLY extract brand codes that are EXPLICITLY VISIBLE in the Item No. column
+2. DO NOT infer brand from product descriptions
+3. DO NOT guess or fabricate brand codes
+4. If no Item No. patterns are found, return empty brand_codes array
+5. If Item No. format is unclear, return empty brand_codes array
+6. Deduplicate brand codes (if NST appears 5 times, return ["NST"] once)
+
+RESPONSE FORMAT (JSON):
+{
+    "document_type": "PURCHASE_ORDER",
+    "brand_codes": ["array", "of", "unique", "brand", "codes"] or [],
+    "po_reference": "PO Ref No if visible or null",
+    "vendor": "Vendor name if visible or null",
+    "total_items": number of line items or null,
+    "confidence": "HIGH" | "MEDIUM" | "LOW",
+    "notes": "any observations"
+}
+
+CONFIDENCE GUIDELINES:
+- HIGH: Clear Item No. column, pattern matches exactly
+- MEDIUM: Some Item No. visible but formatting varies
+- LOW: Item No. column unclear or partially visible
+
+RESPONSE RULES:
+1. Respond with valid JSON only - no additional text
+2. Empty brand_codes array is acceptable - DO NOT fabricate
+3. Leave null for fields you cannot find with certainty

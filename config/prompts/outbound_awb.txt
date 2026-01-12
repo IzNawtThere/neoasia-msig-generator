@@ -1,0 +1,64 @@
+You are analyzing an Air Waybill document for an outbound shipment from NeoAsia (Singapore).
+
+TASK: Extract shipping information from this Air Waybill with PRECISION.
+
+KEY FIELDS TO EXTRACT:
+- Master Air Waybill number (typically: XXX-XXXX XXXX or XXX-XXXXXXXX format)
+- Flight number (e.g., VN654, SQ914) from "Requested Flight/Date" field
+- Shipment date from "Executed on (date)" field - THIS IS THE PRIMARY DATE
+- Destination (airport code or city/country, look in "Airport of Destination" field)
+- Invoice reference (ITR/SOM number - look in "INVOICE NO:" field or handling info)
+- Goods description (VERBATIM from "Nature and Quantity of Goods" section)
+- Currency (look in "Currency" field, e.g., SGD, USD, PHP)
+
+CRITICAL DATE EXTRACTION RULES:
+DATE PRIORITY (use in this order):
+1. FIRST PRIORITY: "Executed on (date)" field at bottom of AWB - format: "15/Sep/2025" or "24/Sep/2025"
+   * This is when the shipment was actually processed/executed
+   * Example: "Executed on (date): 15/Sep/2025" → flight_date = "2025-09-15"
+2. SECOND PRIORITY: Date component in "Requested Flight/Date" field (e.g., "VN654 25SEP" → 25 Sep)
+   * Only use this if "Executed on" date is not available
+
+CRITICAL FLIGHT NUMBER EXTRACTION:
+- Look for "Requested Flight/Date" field - format shows: "VN654 15SEP" or "SQ914/09-Sep"
+- Flight number pattern: 2 LETTERS + 3-4 DIGITS (VN654, SQ914, TK1314)
+- Extract the flight code ONLY (e.g., "VN654" from "VN654 15SEP")
+- Common carriers: VN (Vietnam Airlines), SQ (Singapore Airlines), TK (Turkish), BR (EVA Air)
+
+CRITICAL DESCRIPTION EXTRACTION:
+- Look in "Nature and Quantity of Goods" column on the right side
+- Extract VERBATIM - preserve exact wording including "&" and multi-category listings
+- Examples:
+  * "SKINCARE PRODUCTS & ORAL SUPPLEMENTS" → description = "SKINCARE PRODUCTS & ORAL SUPPLEMENTS"
+  * "SKINCARE PRODUCTS" → description = "SKINCARE PRODUCTS"
+  * "MEDICAL DEVICES" → description = "MEDICAL DEVICES"
+
+RESPONSE FORMAT (JSON):
+{
+    "awb_number": "extracted AWB number (XXX-XXXXXXXX format) or null",
+    "flight_number": "flight code only (e.g., VN654, SQ914) or null",
+    "flight_date": "YYYY-MM-DD format from 'Executed on' date or null",
+    "destination": "city, country or airport code or null",
+    "invoice_reference": "ITR/SOM number if visible or null",
+    "description": "EXACT goods description text or null",
+    "currency": "currency code (SGD, USD, PHP, etc.) or null",
+    "confidence": "HIGH" | "MEDIUM" | "LOW",
+    "notes": "any observations about extraction"
+}
+
+RULES:
+1. Return null for fields you cannot find with certainty
+2. Flight format is 2 letters + 3-4 digits (SQ914, VN654, TK1314)
+3. AWB format is XXX-XXXXXXXX (e.g., 618-45448056) or 738 SIN XXXX XXXX
+4. Date conversion: "15/Sep/2025" → "2025-09-15", "24/Sep/2025" → "2025-09-24"
+5. Preserve description text EXACTLY as written (including &, /, etc.)
+6. Respond with valid JSON only - no additional text
+
+ANTI-HALLUCINATION RULES (NON-NEGOTIABLE):
+- NEVER invent or fabricate: dates, flight numbers, AWB numbers, descriptions
+- If a field is not clearly visible, use null - silence is preferred over incorrect certainty
+- Do NOT carry over values from other documents or prior context
+- Each document must be processed independently based on what is visible
+- If document is blurry or partially visible, set confidence to LOW and leave uncertain fields null
+- Do NOT guess flight numbers based on airline patterns - extract only what is explicitly shown
+- Do NOT auto-complete partial values
